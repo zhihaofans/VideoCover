@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Video Cover</string>
+    <string name="text_bilibili">Bilibili</string>
+    <string name="text_start">Start</string>
+    <string name="text_get">Get</string>
+    <string name="error_noInput">Not enter something</string>
+    <string name="error">Error</string>
+    <string name="error_noResult">Empty result</string>
+    <string name="text_cleanCaches">Clean caches</string>
+    <string name="text_loading">Loading...</string>
+    <string name="error_loadImgFail">Load image failed</string>
+    <string name="video">Video</string>
+    <string name="text_ok" translatable="false">Ok</string>
+    <string name="setting_defaultBilibiliVid" translatable="false">av8113240</string>
+    <string name="text_canceled">Canceled</string>
+    <string name="error_noSupportPage">Do not support this page.</string>
+    <string name="text_cleanSet">Clean settings</string>
+    <string name="text_no" translatable="false">No</string>
+    <string name="text_acfun">Acfun</string>
+    <string name="setting_defaultAcfunVid" translatable="false">ac3966874</string>
+    <string name="text_settingAndAbout">Setting and about</string>
+    <string name="text_save">Save</string>
+    <string name="text_su">Success</string>
+    <string name="text_fail">Fail</string>
+    <string name="error_needStoragePermission">Need storage permission!</string>
+    <string name="text_getPerSu">Get permission success.</string>
+    <string name="title_activity_home">HomeActivity</string>
+    <string name="text_copy">Copy</string>
+</resources>

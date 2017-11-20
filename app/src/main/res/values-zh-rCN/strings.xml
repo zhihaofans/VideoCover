@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">视频封面下载</string>
+    <string name="error_noInput">没有输入内容</string>
+    <string name="error">错误</string>
+    <string name="text_get">获取</string>
+    <string name="text_bilibili">哔哩哔哩网</string>
+    <string name="text_start">开始</string>
+    <string name="error_noResult">空白结果</string>
+    <string name="text_cleanCaches">清空缓存</string>
+    <string name="text_loading">加载中...</string>
+    <string name="error_loadImgFail">加载图片失败</string>
+    <string name="video">视频</string>
+    <string name="text_canceled">已取消</string>
+    <string name="error_noSupportPage">网络错误或不支持这个页面</string>
+    <string name="text_cleanSet">清除设置</string>
+    <string name="text_acfun">AcFun弹幕视频网</string>
+    <string name="text_settingAndAbout">设置与关于</string>
+    <string name="text_save">保存</string>
+    <string name="text_fail">失败</string>
+    <string name="error_needStoragePermission">需要储存权限</string>
+    <string name="text_su">成功</string>
+    <string name="text_getPerSu">获取权限成功。</string>
+    <string name="text_copy">复制</string>
+</resources>
