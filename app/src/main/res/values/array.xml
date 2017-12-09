@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-    <string-array name="test">
-        <item>test item</item>
+    <string-array name="sites">
+        <item>@string/text_bilibili</item>
+        <item>@string/text_youtube</item>
     </string-array>
 </resources>

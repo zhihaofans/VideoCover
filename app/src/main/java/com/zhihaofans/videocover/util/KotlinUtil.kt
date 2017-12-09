@@ -6,13 +6,10 @@ import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.os.Build
 import android.os.Environment
-import com.allen.library.RxHttpUtils
-import com.allen.library.base.BaseRxHttpApplication
-import com.allen.library.download.DownloadObserver
 import com.orhanobut.logger.Logger
-import io.reactivex.disposables.Disposable
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -20,12 +17,41 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
+import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 
 
 /**
  * Created by zhihaofans on 2017/10/16.
  */
-class KotlinUtil : BaseRxHttpApplication() {
+class KotlinUtil {
+
+    class StrUtil {
+        fun urlAutoHttps(url: String): String {
+            if (url.startsWith("//")) {
+                return "https:$url"
+            }
+            return url
+        }
+
+        fun path2ext(path: String): String {
+            if (path.isNotEmpty()) {
+                val dot = path.lastIndexOf('.')
+                if (dot > -1 && dot < path.length - 1) {
+                    return path.substring(dot + 1)
+                }
+            }
+            return path
+        }
+
+        fun fromBoolean(boolean: Boolean, y: String, n: String): String {
+            if (boolean) {
+                return y
+            } else {
+                return n
+            }
+        }
+    }
 
     class Android {
         fun getStoragePermission(activity: Activity): Boolean {
@@ -49,6 +75,7 @@ class KotlinUtil : BaseRxHttpApplication() {
             if (!a.endsWith("/")) {
                 a = "$a/"
             }
+            Logger.d(a)
             return a
         }
 
@@ -58,6 +85,35 @@ class KotlinUtil : BaseRxHttpApplication() {
                 a = "$a/"
             }
             return a
+        }
+
+        fun saveImage(picName: String, picdata: Bitmap): Boolean {
+            val BaseDir = System.getenv("EXTERNAL_STORAGE") + "/videocover/"
+            val f = File(BaseDir, picName)
+            Logger.d("保存图片\n" + BaseDir + picName)
+            f.mkdirs()
+            if (f.exists()) {
+                f.delete()
+            }
+            try {
+                val out = FileOutputStream(f)
+                picdata.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.flush()
+                out.close()
+                Logger.d("已经保存")
+                return true
+            } catch (e: FileNotFoundException) {
+                // TODO Auto-generated catch block
+                e.printStackTrace()
+                Logger.e("保存失败(FileNotFoundException)")
+                return false
+            } catch (e: IOException) {
+                // TODO Auto-generated catch block
+                e.printStackTrace()
+                Logger.e("保存失败(IOException)")
+                return false
+            }
+
         }
 
         fun saveBitmap(path: String, fileName: String, ext: String, bitmap: Bitmap): Boolean {
@@ -139,30 +195,8 @@ class KotlinUtil : BaseRxHttpApplication() {
 
         }
     }
+
     class Net {
-        fun download(url: String, fileName: String) {
-            RxHttpUtils
-                    .downloadFile(url)
-                    .subscribe(object : DownloadObserver(fileName) {
-                        override fun getDisposable(d: Disposable) {
-                            //方法暴露出来使用者根据需求去取消订阅
-                            //d.dispose();在onDestroy方法中调用
-                        }
-
-                        override fun onError(errorMsg: String) {
-
-                        }
-
-                        override fun onSuccess(bytesRead: Long, contentLength: Long, progress: Float, done: Boolean, filePath: String) {
-                            Logger.d("allen", "下载中：$progress%")
-                            if (done) {
-                                Logger.d("下载完成---文件路径" + filePath)
-                            }
-
-                        }
-                    })
-        }
-
         fun getImageBitmap(url: URL): Bitmap? {
             val bytes = getImageByte(url)
             return BitmapFactory.decodeByteArray(bytes, 0, bytes!!.size)
@@ -183,6 +217,23 @@ class KotlinUtil : BaseRxHttpApplication() {
                 Logger.e("getImageByte", "error:$e")
                 null
             }
+        }
+    }
+
+    class images {
+        fun drawable2Bitmap(drawable: Drawable): Bitmap {
+            val bitmap = Bitmap.createBitmap(
+                    drawable.intrinsicWidth,
+                    drawable.intrinsicHeight,
+                    if (drawable.opacity != PixelFormat.OPAQUE)
+                        Bitmap.Config.ARGB_8888
+                    else
+                        Bitmap.Config.RGB_565)
+            val canvas = Canvas(bitmap)
+            //canvas.setBitmap(bitmap);
+            drawable.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
+            drawable.draw(canvas)
+            return bitmap
         }
     }
 

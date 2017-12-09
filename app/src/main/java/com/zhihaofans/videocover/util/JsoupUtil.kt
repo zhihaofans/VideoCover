@@ -5,11 +5,8 @@ import org.jsoup.nodes.Document
 /**
  * Created by zhihaofans on 2017/11/20.
  */
-class JsoupUtil {
-    var dom: Document? = null
-    fun init(dom: Document) {
-        this.dom = dom
-    }
+class JsoupUtil(inputDom: Document) {
+    private val dom: Document? = inputDom
 
     fun safeAttr(cssQuery: String, attrName: String): String {
         val a = dom!!.select(cssQuery)

@@ -6,7 +6,7 @@ apply plugin: "kotlin-android-extensions"
 
 android {
     compileSdkVersion 27
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '27.0.1'
     defaultConfig {
         applicationId "com.zhihaofans.videocover"
         minSdkVersion 21
@@ -29,9 +29,9 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'com.android.support:appcompat-v7:27.0.1'
+    implementation 'com.android.support:appcompat-v7:27.0.2'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'com.android.support:design:27.0.1'
+    implementation 'com.android.support:design:27.0.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation("com.android.support.test.espresso:espresso-core:3.0.1", {
         exclude group: "com.android.support", module: "support-annotations"
@@ -40,6 +40,7 @@ dependencies {
     compile "org.jetbrains.anko:anko:$anko_version"
     implementation 'org.jsoup:jsoup:1.10.3'
     compile "com.facebook.fresco:fresco:$fresco_version"
+    compile "com.facebook.fresco:imagepipeline-okhttp:$fresco_version"
     compile "com.facebook.fresco:animated-gif:$fresco_version"
     compile "com.facebook.fresco:animated-webp:$fresco_version"
     compile "com.facebook.fresco:webpsupport:$fresco_version"

@@ -30,11 +30,10 @@ class AcfunUtil {
             imgUrl = Jsoup.connect("http://www.acfun.cn/v/$vid").get().select("div#pageInfo").attr("data-pic")
         } catch (e: Exception) {
             error(e.toString())
-            ma.stopPD(pd, e.toString())
         } finally {
             Logger.d("vid;$vid|imgUrl:$imgUrl")
             if (imgUrl.isNotEmpty()) {
-                val str = StrUtil()
+                val str = KotlinUtil.StrUtil()
                 return str.urlAutoHttps(imgUrl)
             }
             return ""
@@ -59,7 +58,6 @@ class AcfunUtil {
             }
         } catch (e: IOException) {
             e.printStackTrace()
-            ma.stopPD(pd, e.toString())
             Logger.e("error:$e")
             ""
         }
@@ -76,7 +74,6 @@ class AcfunUtil {
             t = Jsoup.connect("http://www.acfun.cn/v/$vid").get().select("div#pageInfo").attr("data-title")
         } catch (e: Exception) {
             error(e.toString())
-            ma.stopPD(pd, e.toString())
         } finally {
             Logger.d("vid;$vid|title:$t")
             if (t.isNotEmpty()) {

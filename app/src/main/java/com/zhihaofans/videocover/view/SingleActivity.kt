@@ -1,9 +1,9 @@
 package com.zhihaofans.videocover.view
 
-import android.app.ProgressDialog
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +11,7 @@ import android.os.Handler
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.MenuItem
+import com.facebook.common.executors.CallerThreadExecutor
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
 import com.facebook.drawee.drawable.ProgressBarDrawable
@@ -19,30 +20,34 @@ import com.facebook.imagepipeline.image.ImageInfo
 import com.orhanobut.logger.Logger
 import com.zhihaofans.videocover.R
 import com.zhihaofans.videocover.util.KotlinUtil
-import com.zhihaofans.videocover.util.StrUtil
-import com.zhihaofans.videocover.util.SysUtil
 import kotlinx.android.synthetic.main.activity_single.*
 import kotlinx.android.synthetic.main.content_single.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import java.net.URL
+import com.facebook.imagepipeline.request.ImageRequestBuilder
+import com.facebook.imagepipeline.image.CloseableImage
+import com.facebook.common.references.CloseableReference
+import com.facebook.datasource.DataSource
+import com.facebook.imagepipeline.backends.okhttp.OkHttpImagePipelineConfigFactory
+import com.facebook.imagepipeline.core.ImagePipelineConfig
+import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber
+import com.facebook.imagepipeline.listener.RequestListener
+import com.facebook.imagepipeline.listener.RequestLoggingListener
+import com.squareup.okhttp.OkHttpClient
 
 
-var imgUrl = ""
-var vid = ""
-var v_title = ""
-var loadFailed = false
+class SingleActivity : AppCompatActivity() {
+    private val str = KotlinUtil.StrUtil()
+    private val ad = KotlinUtil.Android()
+    private val imagePipeline = Fresco.getImagePipeline()
+    private var video_info = mutableMapOf<String, String>()
+    private var loadFailed = false
+    private val image = KotlinUtil.images()
 
-class SingleActivity : AppCompatActivity(), AnkoLogger {
-    private val sys = SysUtil()
-    private val str = StrUtil()
-    private val set = sys.setting()
-    private var aa: ProgressDialog? = null
     override fun onDestroy() {
         super.onDestroy()
-        aa!!.dismiss()
         iv.setImageURI("")
-        Fresco.getImagePipeline().clearCaches()
+        imagePipeline.clearCaches()
         //do something
     }
 
@@ -63,181 +68,166 @@ class SingleActivity : AppCompatActivity(), AnkoLogger {
         setSupportActionBar(toolbar_single)
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        var a = indeterminateProgressDialog("Please wait a minute.")
-        aa = a
-        a.setCanceledOnTouchOutside(false)
-        a.hide()
-        sys.setContext(this)
-        imgUrl = intent.extras.getString("img")
-        vid = intent.extras.getString("vid")
-        v_title = intent.extras.getString("title")
-        Logger.d("img:$imgUrl\nvid:$vid\ntitle:$v_title")
-        if (imgUrl.isEmpty()) {
-            alert {
-                title = getString(R.string.error)
-                message = "图片地址错误"
-                setFinishOnTouchOutside(false)
-                yesButton {
-                    finish()
-                }
-            }.show()
-        }
-        if (vid.isEmpty()) {
-            alert {
-                title = getString(R.string.error)
-                message = "视频id错误"
-                setFinishOnTouchOutside(false)
-                yesButton {
-                    finish()
-                }
-            }.show()
-        }
-        if (v_title.isEmpty()) {
-            alert {
-                title = getString(R.string.error)
-                message = "视频标题错误"
-                setFinishOnTouchOutside(false)
-                yesButton {
-                    finish()
-                }
-            }.show()
-        }
-        title = getString(R.string.text_loading)
-        iv.hierarchy = GenericDraweeHierarchyBuilder(resources).setProgressBarImage(ProgressBarDrawable()).build()
-        iv.controller = Fresco.newDraweeControllerBuilder()
-                .setUri(Uri.parse(imgUrl))
-                .setAutoPlayAnimations(true)
-                .setControllerListener(object : BaseControllerListener<ImageInfo>() {
-                    override fun onFinalImageSet(id: String?, imageInfo: ImageInfo?, animatable: Animatable?) {
-                        super.onFinalImageSet(id, imageInfo, animatable)
-                        //1:获取bitmap
-                        //2：存sd卡
-                        //3：分享sd的图片
-                        Logger.d("获取图片完毕")
-                        if (imageInfo == null) {
-                            return
-                        }
-                        title = vid
-                        Snackbar.make(coordinatorLayout_single, v_title, Snackbar.LENGTH_LONG).setAction(R.string.text_copy, {
-                            sys.copy(v_title, cm)
-                        }).show()
-                        val height = imageInfo.height
-                        val width = imageInfo.width
-                        val layoutParams = iv.layoutParams
-                        if (cl.height == 0) {
-                            cl.maxHeight = set.getInt("clHeight", cl.height)
-                            cl.minHeight = set.getInt("clHeight", cl.height)
-                        }
-                        if (cl.width == 0) {
-                            cl.maxWidth = set.getInt("clWidth", cl.width)
-                            cl.minWidth = set.getInt("clWidth", cl.width)
-                        }
-                        layoutParams.width = ll_single.width
-                        layoutParams.height = ll_single.height
-                        set.setInt("clWidth", cl.width)
-                        set.setInt("clHeight", cl.height)
-                        //layoutParams.height = Integer.valueOf(((width * height).toFloat() / width.toFloat()).toInt().toString())
-                        layoutParams.height = (cl.width.toFloat() / (width.toFloat() / height.toFloat())).toInt()
-                        iv.layoutParams = layoutParams
-                        Logger.d("height:${imageInfo.height}\nwidth:${imageInfo.width}\nlayoutParams.height:${layoutParams.height}\nlayoutParams.width:${layoutParams.width}")
+        var coverBitmap: Bitmap = image.drawable2Bitmap(getDrawable(R.mipmap.ic_launcher))
+        var su = false
+        try {
+            video_info = mutableMapOf(
+                    "vid" to intent.extras.getString("vid", "获取失败"),
+                    "title" to intent.extras.getString("title", "获取失败"),
+                    "cover" to intent.extras.getString("cover", ""),
+                    "author" to intent.extras.getString("author", "获取失败"),
+                    "web" to intent.extras.getString("web", "获取失败")
+            )
+            su = true
+            Logger.d(video_info)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            if (!su) {
+                this@SingleActivity.title = getString(R.string.error_loadImgFail)
+                alert(message = "(loadData)", title = getString(R.string.error)) {
+                    okButton {
+                        finish()
                     }
-
-                    override fun onFailure(id: String, throwable: Throwable) {
-                        loadFailed = true
-                        throwable.printStackTrace()
-                        Handler().postDelayed({
-                            //execute the task
-                            toast(R.string.error_loadImgFail)
-                            finish()
-                        }, 500)
-
+                    onCancelled {
+                        finish()
                     }
-                })
-                .build()
-        ll.onClick {
-            if (loadFailed) {
-                toast(R.string.error_loadImgFail)
-                finish()
+                }.show()
             } else {
-                Logger.d(imgUrl)
-                val countries = listOf("浏览器打开视频网页", "浏览器打开图片", "下载图片", "分享图片地址", "复制图片地址")
-                selector(vid, countries, { _, i ->
-                    when (i) {
-                        0 -> browse("https://www.bilibili.com/video/$vid/")//浏览器打开网页
-                        1 -> browse(imgUrl)//浏览器打开图片
-                        2 -> {
-                            val ext = str.path2ext(imgUrl)
-                            val fileName = "$vid.$ext"
-                            Logger.d(fileName)
-                            /*
-                            selector("", listOf(), { _, ii ->
-                                when(ii){
-
-                                }
-
-                            })
-                            */
-                            a.show()
-                            val b = doAsync {
-                                val su: Boolean = saveImg(imgUrl, "video_cover/", fileName)
-                                uiThread {
-                                    a.hide()
-                                    var tipStr: String = ""
-                                    if (su) {
-                                        tipStr = getString(R.string.text_su)
-                                    } else {
-                                        tipStr = getString(R.string.text_fail)
-                                    }
-                                    toast(tipStr)
-                                }
-                            }
-                            a.setOnCancelListener {
-                                a = indeterminateProgressDialog("Please wait a minute.", "Getting…")
-                                b.cancel(true)
-                                toast(R.string.text_canceled)
-                            }
-
+                Logger.d("img:${video_info["cover"]}\nvid:${video_info["vid"]}\ntitle:${video_info["title"]}")
+                if (video_info["cover"]!!.isEmpty()) {
+                    alert(getString(R.string.error), "图片地址错误") {
+                        setFinishOnTouchOutside(false)
+                        yesButton {
+                            finish()
                         }
-                        3 -> share(imgUrl)//分享图片地址
-                        4 -> {
-                            //复制图片地址
-                            if (sys.copy(imgUrl, cm)) {
-                                toast("复制成功")
-                            } else {
-                                toast("复制失败")
-                            }
+                    }.show()
+                }
+                if (video_info["vid"]!!.isEmpty()) {
+                    alert(getString(R.string.error), "视频id错误") {
+                        setFinishOnTouchOutside(false)
+                        yesButton {
+                            finish()
                         }
-
+                    }.show()
+                }
+                if (video_info["title"]!!.isEmpty()) {
+                    alert(getString(R.string.error), "视频标题错误") {
+                        setFinishOnTouchOutside(false)
+                        yesButton {
+                            finish()
+                        }
+                    }.show()
+                }
+                title = getString(R.string.text_loading)
+                val mOkHttpClient = OkHttpClient()
+                val listeners: Set<RequestListener> = hashSetOf(RequestLoggingListener())
+                val config: ImagePipelineConfig = OkHttpImagePipelineConfigFactory
+                        .newBuilder(this@SingleActivity, mOkHttpClient)
+                        .setDownsampleEnabled(true)
+                        .setRequestListeners(listeners)
+                        .build()
+                Fresco.initialize(this@SingleActivity, config)
+                val imageRequest = ImageRequestBuilder
+                        .newBuilderWithSource(Uri.parse(video_info["cover"]))
+                        .setProgressiveRenderingEnabled(true)
+                        .build()
+                val dataSource = imagePipeline.fetchDecodedImage(imageRequest, this@SingleActivity)
+                dataSource.subscribe(object : BaseBitmapDataSubscriber() {
+                    override fun onNewResultImpl(bitmap: Bitmap?) {
+                        coverBitmap = bitmap!!
                     }
 
-                })
+                    override fun onFailureImpl(dataSource: DataSource<CloseableReference<CloseableImage>>?) {
+                        coverBitmap = image.drawable2Bitmap(getDrawable(R.mipmap.ic_launcher))
+                    }
+
+                }, CallerThreadExecutor.getInstance())
+                iv.hierarchy = GenericDraweeHierarchyBuilder(resources).setProgressBarImage(ProgressBarDrawable()).build()
+                iv.controller = Fresco.newDraweeControllerBuilder()
+                        .setUri(Uri.parse(video_info["cover"]))
+                        .setAutoPlayAnimations(true)
+                        .setControllerListener(object : BaseControllerListener<ImageInfo>() {
+                            override fun onFinalImageSet(id: String?, imageInfo: ImageInfo?, animatable: Animatable?) {
+                                super.onFinalImageSet(id, imageInfo, animatable)
+                                //1:获取bitmap
+                                //2：存sd卡
+                                //3：分享sd的图片
+                                Logger.d("获取图片完毕")
+                                if (imageInfo == null) {
+                                    return
+                                }
+                                this@SingleActivity.title = video_info["vid"]
+                                Snackbar.make(coordinatorLayout_single, video_info["title"].toString(), Snackbar.LENGTH_LONG).setAction(R.string.text_copy, {
+                                    if (video_info["title"]!!.isNotEmpty()) {
+                                        cm.primaryClip = ClipData.newPlainText("Hi", video_info["title"])
+                                        Snackbar.make(coordinatorLayout_single, "OK", Snackbar.LENGTH_SHORT).show()
+                                    }
+                                }).show()
+                                val height = imageInfo.height
+                                val width = imageInfo.width
+                                val layoutParams = iv.layoutParams
+                                layoutParams.width = ll_single.width
+                                layoutParams.height = ll_single.height
+                                //layoutParams.height = Integer.valueOf(((width * height).toFloat() / width.toFloat()).toInt().toString())
+                                layoutParams.height = (cl.width.toFloat() / (width.toFloat() / height.toFloat())).toInt()
+                                iv.layoutParams = layoutParams
+                                Logger.d("height:${imageInfo.height}\nwidth:${imageInfo.width}\nlayoutParams.height:${layoutParams.height}\nlayoutParams.width:${layoutParams.width}")
+                            }
+
+                            override fun onFailure(id: String, throwable: Throwable) {
+                                loadFailed = true
+                                throwable.printStackTrace()
+                                Handler().postDelayed({
+                                    //execute the task
+                                    toast(R.string.error_loadImgFail)
+                                    finish()
+                                }, 500)
+
+                            }
+                        })
+                        .build()
+                ll.onClick {
+                    if (loadFailed) {
+                        toast(R.string.error_loadImgFail)
+                        finish()
+                    } else {
+                        Logger.d(video_info["cover"])
+                        val countries = listOf("浏览器打开视频网页", "浏览器打开图片", "下载图片", "分享图片地址", "复制图片地址")
+                        selector(video_info["vid"], countries, { _, i ->
+                            when (i) {
+                                0 -> browse(video_info["web"].toString())//浏览器打开网页
+                                1 -> browse(video_info["cover"].toString())//浏览器打开图片
+                                2 -> {
+                                    val ext = str.path2ext(video_info["cover"].toString())
+                                    val fileName = "${video_info["vid"]}.$ext"
+                                    val savePath = System.getenv("EXTERNAL_STORAGE") + "/videocover/"
+                                    var showText = savePath + fileName
+                                    if (ad.saveImage(fileName, coverBitmap)) {
+                                        showText += "\nOK"
+                                        Snackbar.make(coordinatorLayout_single, "OK ($savePath$fileName)", Snackbar.LENGTH_SHORT).show()
+                                    } else {
+                                        showText += "\nNo"
+                                        Snackbar.make(coordinatorLayout_single, "NO", Snackbar.LENGTH_SHORT).show()
+                                    }
+                                    Logger.d(showText)
+                                }
+                                3 -> share(video_info["cover"].toString())//分享图片地址
+                                4 -> {
+                                    //复制图片地址
+                                    if (video_info["cover"]!!.isNotEmpty()) {
+                                        cm.primaryClip = ClipData.newPlainText("Hi", video_info["cover"])
+                                        Snackbar.make(coordinatorLayout_single, "OK", Snackbar.LENGTH_SHORT).show()
+                                    }
+                                }
+
+                            }
+
+                        })
+                    }
+
+                }
             }
-
-        }
-    }
-
-    private fun saveImg(url: String, path: String, fileName: String): Boolean {
-        val ad = KotlinUtil.Android()
-        val net = KotlinUtil.Net()
-        val str = StrUtil()
-        val ext = str.path2ext(fileName)
-        net.download(url, fileName)
-        val b: ByteArray = net.getImageByte(URL(url)) as ByteArray
-        if (b.isEmpty()) {
-            error("saveImg|Empty")
-            return false
-        }
-        when (ext) {
-            "jpg", "png", "webp" -> return ad.saveBitmap("${ad.getStorage()}$path", fileName, ext, BitmapFactory.decodeByteArray(b, 0, b.size))
-            else -> return ad.saveBytes("${ad.getStorage()}$path", fileName, b)
-        }
-    }
-
-    fun saveToast(su: Boolean) {
-        if (su) {
-            toast(getString(R.string.text_save) + getString(R.string.text_su))
-        } else {
-            toast(getString(R.string.text_save) + getString(R.string.text_fail))
         }
     }
 
