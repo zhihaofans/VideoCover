@@ -2,10 +2,15 @@ package com.zhihaofans.videocover.util
 
 import android.app.ProgressDialog
 import android.text.Editable
+import com.alibaba.fastjson.JSON
+import com.google.gson.Gson
 import com.orhanobut.logger.Logger
 import com.zhihaofans.videocover.MainActivity
+import com.zhihaofans.videocover.gson.BiliBiliGalmoeGson
+import com.zhihaofans.videocover.jsonparse.AcfunParse
 import okhttp3.*
 import org.jsoup.Jsoup
+import java.io.IOException
 import java.util.*
 
 
@@ -17,6 +22,28 @@ import java.util.*
 class BilibiliUtil {
     private val str = KotlinUtil.StrUtil()
 
+    fun getVideo3rd(vid: String): String {
+        var imgUrl = ""
+        val g = Gson()
+        return try {
+            val response = OkHttpClient().newCall(Request.Builder().get().url("https://www.bilibili.com/video/$vid/").build()).execute()
+            Logger.d("code:${response.code()}")
+            if (response.isSuccessful) {
+                val rejson = response.body().toString()
+                Logger.d(rejson)
+                val biliBiliGalmoeGson = g.fromJson(rejson, BiliBiliGalmoeGson::class.java)
+                if (biliBiliGalmoeGson.result == 1) imgUrl = biliBiliGalmoeGson.url
+            } else {
+                //......
+                Logger.e("code:${response.code()}")
+            }
+            imgUrl
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Logger.e("error:$e")
+            imgUrl
+        }
+    }
 
     @Suppress("UNREACHABLE_CODE")
     fun getVideoAll(vid: String): MutableMap<String, String> {
@@ -44,11 +71,14 @@ class BilibiliUtil {
             val dom = Jsoup.parse(html)
             val jsoupUtil = JsoupUtil(dom)
             videoAuthor = jsoupUtil.safeAttr("head > meta[name=\"author\"]", "content")
-            videoCover = jsoupUtil.safeAttr("img.cover_image", "src")
-            videoTitle = jsoupUtil.safeAttr("div.v-title > h1", "title")
+            videoCover = jsoupUtil.safeAttr("head > meta[name=\"image\"]", "content")
+            videoTitle = jsoupUtil.safeAttr("head > meta[name=\"og:title\"]", "content")
             if (videoCover.isNotEmpty()) {
                 videoCover = str.urlAutoHttps(videoCover)
+            } else {
+                videoCover = jsoupUtil.safeAttr("head > meta[name=\"og:image\"]", "content")
             }
+            if (videoCover.isEmpty()) videoCover = getVideo3rd(vid)
             reData = mutableMapOf("title" to videoTitle, "cover" to videoCover, "author" to videoAuthor, "description" to videoDescription)
             Logger.d(reData)
             return reData

@@ -11,8 +11,6 @@ import com.facebook.drawee.backends.pipeline.Fresco
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.tbruyelle.rxpermissions2.RxPermissions
-import com.zhihaofans.videocover.util.AcfunUtil
-import com.zhihaofans.videocover.util.BilibiliUtil
 import com.zhihaofans.videocover.util.KotlinUtil
 import com.zhihaofans.videocover.util.SiteUtil
 import com.zhihaofans.videocover.view.AboutActivity
@@ -20,7 +18,6 @@ import com.zhihaofans.videocover.view.SingleActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import android.widget.Toast
 
 
 class MainActivity : AppCompatActivity() {
@@ -143,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                                     a.hide()
                                     startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor)
                                 } else {
-                                    alert(getString(R.string.error_noResult))
+                                    Snackbar.make(coordinatorLayout_main, getString(R.string.error_noSupportPage), Snackbar.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -151,9 +148,9 @@ class MainActivity : AppCompatActivity() {
                             b.cancel(true)
                             a.hide()
                             if (b.isCancelled) {
-                                toast(R.string.text_canceled)
+                                Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled), Snackbar.LENGTH_SHORT).show()
                             } else {
-                                toast(getString(R.string.text_canceled) + getString(R.string.text_fail))
+                                Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled) + getString(R.string.text_fail), Snackbar.LENGTH_SHORT).show()
                             }
                         }
 
@@ -188,7 +185,7 @@ class MainActivity : AppCompatActivity() {
                                     a.hide()
                                     startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor)
                                 } else {
-                                    alert(getString(R.string.error_noResult))
+                                    Snackbar.make(coordinatorLayout_main, getString(R.string.error_noResult), Snackbar.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -196,9 +193,9 @@ class MainActivity : AppCompatActivity() {
                             b.cancel(true)
                             a.hide()
                             if (b.isCancelled) {
-                                toast(R.string.text_canceled)
+                                Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled), Snackbar.LENGTH_SHORT).show()
                             } else {
-                                toast(getString(R.string.text_canceled) + getString(R.string.text_fail))
+                                Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled) + getString(R.string.text_fail), Snackbar.LENGTH_SHORT).show()
                             }
                         }
 
@@ -208,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                             title = getString(R.string.error_noInput)
                             setFinishOnTouchOutside(false)
                             okButton { title = getString(R.string.text_ok) }
-                        }
+                        }.show()
                     }
 
 

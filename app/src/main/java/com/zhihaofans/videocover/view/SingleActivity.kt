@@ -112,12 +112,7 @@ class SingleActivity : AppCompatActivity() {
                     }.show()
                 }
                 if (video_info["title"]!!.isEmpty()) {
-                    alert(getString(R.string.error), "视频标题错误") {
-                        setFinishOnTouchOutside(false)
-                        yesButton {
-                            finish()
-                        }
-                    }.show()
+                    video_info["title"] = "这个视频暂不支持获取标题，带来不便敬请谅解。"
                 }
                 title = getString(R.string.text_loading)
                 val mOkHttpClient = OkHttpClient()
