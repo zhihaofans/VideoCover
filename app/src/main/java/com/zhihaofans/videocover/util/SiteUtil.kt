@@ -85,13 +85,20 @@ class SiteUtil {
         }
     }
 
-    fun youtube(vid: String): MutableMap<String, String> {
-        return youtube(vid, false)
+    fun youtube(vid: String, quality: Int = 0): MutableMap<String, String> {
+        return youtube(vid, quality, false)
     }
 
 
-    fun youtube(vid: String, onlyCover: Boolean): MutableMap<String, String> {
-        val videoCover = "http://i.ytimg.com/vi/$vid/maxresdefault.jpg"
+    fun youtube(vid: String, quality: Int = 0, onlyCover: Boolean): MutableMap<String, String> {
+        val videoCover = when (quality) {
+            0 -> "https://img.youtube.com/vi/$vid/maxresdefault.jpg"
+            1 -> "https://img.youtube.com/vi/$vid/sddefault.jpg"
+            2 -> "https://img.youtube.com/vi/$vid/hqdefault.jpg"
+            3 -> "https://img.youtube.com/vi/$vid/mqdefault.jpg"
+            else -> "https://img.youtube.com/vi/$vid/maxresdefault.jpg"
+        }
+
         val reData = mutableMapOf("title" to "YouTube暂不支持获取标题，带来不便敬请谅解。", "cover" to videoCover, "author" to "YouTube暂不支持获取作者", "web" to "https://youtu.be/$vid")
         if (onlyCover) {
             Logger.d(reData)

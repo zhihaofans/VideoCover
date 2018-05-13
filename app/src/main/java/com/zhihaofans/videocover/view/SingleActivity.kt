@@ -7,33 +7,34 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.MenuItem
 import com.facebook.common.executors.CallerThreadExecutor
+import com.facebook.common.references.CloseableReference
+import com.facebook.datasource.DataSource
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
 import com.facebook.drawee.drawable.ProgressBarDrawable
 import com.facebook.drawee.generic.GenericDraweeHierarchyBuilder
+import com.facebook.imagepipeline.backends.okhttp.OkHttpImagePipelineConfigFactory
+import com.facebook.imagepipeline.core.ImagePipelineConfig
+import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber
+import com.facebook.imagepipeline.image.CloseableImage
 import com.facebook.imagepipeline.image.ImageInfo
+import com.facebook.imagepipeline.listener.RequestListener
+import com.facebook.imagepipeline.listener.RequestLoggingListener
+import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.orhanobut.logger.Logger
+import com.squareup.okhttp.OkHttpClient
 import com.zhihaofans.videocover.R
 import com.zhihaofans.videocover.util.KotlinUtil
 import kotlinx.android.synthetic.main.activity_single.*
 import kotlinx.android.synthetic.main.content_single.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk25.coroutines.onClick
-import com.facebook.imagepipeline.request.ImageRequestBuilder
-import com.facebook.imagepipeline.image.CloseableImage
-import com.facebook.common.references.CloseableReference
-import com.facebook.datasource.DataSource
-import com.facebook.imagepipeline.backends.okhttp.OkHttpImagePipelineConfigFactory
-import com.facebook.imagepipeline.core.ImagePipelineConfig
-import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber
-import com.facebook.imagepipeline.listener.RequestListener
-import com.facebook.imagepipeline.listener.RequestLoggingListener
-import com.squareup.okhttp.OkHttpClient
 
 
 class SingleActivity : AppCompatActivity() {
@@ -76,7 +77,8 @@ class SingleActivity : AppCompatActivity() {
                     "title" to intent.extras.getString("title", "获取失败"),
                     "cover" to intent.extras.getString("cover", ""),
                     "author" to intent.extras.getString("author", "获取失败"),
-                    "web" to intent.extras.getString("web", "获取失败")
+                    "web" to intent.extras.getString("web", "获取失败"),
+                    "site" to intent.extras.getString("site", "")
             )
             su = true
             Logger.d(video_info)
@@ -195,12 +197,17 @@ class SingleActivity : AppCompatActivity() {
                                 1 -> browse(video_info["cover"].toString())//浏览器打开图片
                                 2 -> {
                                     val ext = str.path2ext(video_info["cover"].toString())
-                                    val fileName = "${video_info["vid"]}.$ext"
-                                    val savePath = System.getenv("EXTERNAL_STORAGE") + "/videocover/"
-                                    var showText = savePath + fileName
+                                    val nowSite: String = video_info["site"].toString()
+                                    val fileName = "${nowSite}_${video_info["vid"]}.$ext"
+                                    val savePath = ad.getStorage() + Environment.DIRECTORY_PICTURES + "/videocover/"
+                                    var showText = "$savePath$fileName"
                                     if (ad.saveImage(fileName, coverBitmap)) {
+                                        ad.updateGallery(this@SingleActivity, savePath)
                                         showText += "\nOK"
-                                        Snackbar.make(coordinatorLayout_single, "OK ($savePath$fileName)", Snackbar.LENGTH_SHORT).show()
+                                        Snackbar.make(coordinatorLayout_single, "OK ($savePath$fileName)", Snackbar.LENGTH_SHORT).setAction(R.string.text_open, {
+                                            ad.openJpgInOtherApp(this@SingleActivity, savePath + fileName)
+                                        })
+                                                .show()
                                     } else {
                                         showText += "\nNo"
                                         Snackbar.make(coordinatorLayout_single, "NO", Snackbar.LENGTH_SHORT).show()

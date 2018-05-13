@@ -8,7 +8,7 @@
     <string name="error_noResult">Empty result</string>
     <string name="text_cleanCaches">Clean caches</string>
     <string name="text_loading">Loading...</string>
-    <string name="error_loadImgFail">Load image failed</string>
+    <string name="error_loadImgFail">Load image failed, you can check you network or try other qualitys.</string>
     <string name="video">Video</string>
     <string name="text_ok" translatable="false">Ok</string>
     <string name="setting_defaultBilibiliVid" translatable="false">av8113240</string>
@@ -28,4 +28,6 @@
     <string name="text_youtube" translatable="false">YouTube</string>
     <string name="setting_defaultYoutubeVid" translatable="false">FlsCjmMhFmw</string>
     <string name="text_updateApp">Update app</string>
+    <string name="text_quality_default">Default quality</string>
+    <string name="text_open">Open</string>
 </resources>

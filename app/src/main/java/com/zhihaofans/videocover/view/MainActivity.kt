@@ -1,20 +1,19 @@
-package com.zhihaofans.videocover
+package com.zhihaofans.videocover.view
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
-import android.view.View
-import android.widget.AdapterView
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.tbruyelle.rxpermissions2.RxPermissions
+import com.tencent.bugly.Bugly
+import com.tencent.bugly.beta.Beta
+import com.zhihaofans.videocover.R
 import com.zhihaofans.videocover.util.KotlinUtil
 import com.zhihaofans.videocover.util.SiteUtil
-import com.zhihaofans.videocover.view.AboutActivity
-import com.zhihaofans.videocover.view.SingleActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk25.coroutines.onClick
@@ -23,14 +22,34 @@ import org.jetbrains.anko.sdk25.coroutines.onClick
 class MainActivity : AppCompatActivity() {
     private var getSu = false
     private val ad = KotlinUtil.Android()
+    private var nowSiteId = ""
+    private var nowSiteIndex = 0
+    private var nowSiteQualityIndex = 0
+    private var siteList = mutableListOf<MutableMap<String, MutableList<String>>>()
+
     @SuppressLint("ResourceType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Logger.addLogAdapter(AndroidLogAdapter())
         Fresco.initialize(this)
         Fresco.getImagePipeline().clearCaches()
         setContentView(R.layout.activity_main)
-        Logger.addLogAdapter(AndroidLogAdapter())
+        buglyInit()
         ad.getStorage()
+        siteList = mutableListOf(
+                mutableMapOf(
+                        "name" to mutableListOf("bilibili"),
+                        "quality" to mutableListOf<String>(getString(R.string.text_quality_default)),
+                        "defauit_vid" to mutableListOf(getString(R.string.setting_defaultBilibiliVid))
+                ),
+                mutableMapOf(
+                        "name" to mutableListOf("youtube"),
+                        "quality" to mutableListOf("1080p+", "720p", "480p", "320p"),
+                        "defauit_vid" to mutableListOf(getString(R.string.setting_defaultYoutubeVid))
+                )
+        )
+        button_site.text = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
+        button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
         b_start.isClickable = false
         b_start.onClick {
             if (!getSu) {
@@ -87,18 +106,25 @@ class MainActivity : AppCompatActivity() {
                         }.show()
                     }
                 }
-
-        sp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View, pos: Int, id: Long) {
-                when (pos) {
-                    0 -> editText_input.setText(R.string.setting_defaultBilibiliVid)
-                    1 -> editText_input.setText(R.string.setting_defaultYoutubeVid)
-                }
+        button_quality.onClick {
+            selector("", siteList[nowSiteIndex]["quality"]!!, { dialogInterface, i ->
+                nowSiteQualityIndex = i
+                button_site.text = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
+                button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
+            })
+        }
+        button_site.onClick {
+            val tempSizeList = siteList.map {
+                it["name"]!![0]
             }
-
-            override fun onNothingSelected(parent: AdapterView<*>) {
-                // Do nothing.
-            }
+            selector("", tempSizeList, { dialogInterface, i ->
+                nowSiteIndex = i
+                nowSiteQualityIndex = 0
+                nowSiteId = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
+                button_site.text = nowSiteId
+                button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
+                editText_input.setText((siteList[nowSiteIndex]["defauit_vid"] as MutableList<String>)[0])
+            })
         }
     }
 
@@ -116,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         }
         Logger.d("start()2")
         b_start.onClick {
-            val spNo = sp.selectedItemPosition
+            val spNo = nowSiteIndex
             val vId = editText_input.text.toString()
             Logger.d(spNo)
             val site = SiteUtil()
@@ -138,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                                 a.hide()
                                 if (vCover.isNotEmpty()) {
                                     a.hide()
-                                    startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor)
+                                    startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor, "site" to nowSiteId)
                                 } else {
                                     Snackbar.make(coordinatorLayout_main, getString(R.string.error_noSupportPage), Snackbar.LENGTH_SHORT).show()
                                 }
@@ -174,7 +200,7 @@ class MainActivity : AppCompatActivity() {
                         var vWeb: String
                         var vAuthor: String
                         val b = doAsync {
-                            val reData = site.youtube(vId, true)
+                            val reData = site.youtube(vId, quality = nowSiteQualityIndex, onlyCover = true)
                             vCover = reData["cover"].toString()
                             vTitle = reData["title"].toString()
                             vWeb = reData["web"].toString()
@@ -183,7 +209,7 @@ class MainActivity : AppCompatActivity() {
                                 a.hide()
                                 if (vCover.isNotEmpty()) {
                                     a.hide()
-                                    startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor)
+                                    startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor, "site" to nowSiteId)
                                 } else {
                                     Snackbar.make(coordinatorLayout_main, getString(R.string.error_noResult), Snackbar.LENGTH_SHORT).show()
                                 }
@@ -214,5 +240,12 @@ class MainActivity : AppCompatActivity() {
 
         }
         Logger.d("start()3")
+    }
+
+    private fun buglyInit() {
+        Bugly.init(applicationContext, "f11a7870d7", true)//初始化
+        Beta.enableNotification = true//设置在通知栏显示下载进度
+        Beta.autoDownloadOnWifi = true//设置Wifi下自动下载
+        Beta.enableHotfix = false//关闭热更新能力
     }
 }
