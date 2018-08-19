@@ -2,14 +2,14 @@
 
 buildscript {
     ext.kotlin_version = '1.2.41'
-    ext.fresco_version = '1.8.1'
+    ext.fresco_version = '1.9.0'
     ext.anko_version = '0.10.1'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.2'
+        classpath 'com.android.tools.build:gradle:3.1.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
         // NOTE: Do not place your application dependencies here; they belong
