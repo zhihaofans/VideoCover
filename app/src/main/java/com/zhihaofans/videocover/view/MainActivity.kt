@@ -3,8 +3,8 @@ package com.zhihaofans.videocover.view
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.support.design.widget.Snackbar
-import android.support.v7.app.AppCompatActivity
+import com.google.android.material.snackbar.Snackbar
+import androidx.appcompat.app.AppCompatActivity
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger

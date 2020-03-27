@@ -2,7 +2,7 @@ package com.zhihaofans.videocover.view
 
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.view.MenuItem
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
