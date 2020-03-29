@@ -9,9 +9,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
-import com.google.android.material.snackbar.Snackbar
-import androidx.appcompat.app.AppCompatActivity
 import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
 import com.facebook.common.executors.CallerThreadExecutor
 import com.facebook.common.references.CloseableReference
 import com.facebook.datasource.DataSource
@@ -27,14 +26,14 @@ import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.listener.RequestListener
 import com.facebook.imagepipeline.listener.RequestLoggingListener
 import com.facebook.imagepipeline.request.ImageRequestBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.orhanobut.logger.Logger
-import com.squareup.okhttp.OkHttpClient
 import com.zhihaofans.videocover.R
 import com.zhihaofans.videocover.util.KotlinUtil
 import kotlinx.android.synthetic.main.activity_single.*
 import kotlinx.android.synthetic.main.content_single.*
+import okhttp3.OkHttpClient
 import org.jetbrains.anko.*
-import org.jetbrains.anko.sdk25.coroutines.onClick
 
 
 class SingleActivity : AppCompatActivity() {
@@ -69,16 +68,16 @@ class SingleActivity : AppCompatActivity() {
         setSupportActionBar(toolbar_single)
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        var coverBitmap: Bitmap = image.drawable2Bitmap(getDrawable(R.mipmap.ic_launcher))
+        var coverBitmap: Bitmap? = getDrawable(R.mipmap.ic_launcher)?.let { image.drawable2Bitmap(it) }
         var su = false
         try {
             video_info = mutableMapOf(
-                    "vid" to intent.extras.getString("vid", "获取失败"),
-                    "title" to intent.extras.getString("title", "获取失败"),
-                    "cover" to intent.extras.getString("cover", ""),
-                    "author" to intent.extras.getString("author", "获取失败"),
-                    "web" to intent.extras.getString("web", "获取失败"),
-                    "site" to intent.extras.getString("site", "")
+                    "vid" to (intent.extras?.getString("vid", null) ?: "获取失败"),
+                    "title" to (intent.extras?.getString("title", null) ?: "获取失败"),
+                    "cover" to (intent.extras?.getString("cover", null) ?: "获取失败"),
+                    "author" to (intent.extras?.getString("author", null) ?: "获取失败"),
+                    "web" to (intent.extras?.getString("web", null) ?: "获取失败"),
+                    "site" to (intent.extras?.getString("site", null) ?: "获取失败")
             )
             su = true
             Logger.d(video_info)
@@ -136,7 +135,7 @@ class SingleActivity : AppCompatActivity() {
                     }
 
                     override fun onFailureImpl(dataSource: DataSource<CloseableReference<CloseableImage>>?) {
-                        coverBitmap = image.drawable2Bitmap(getDrawable(R.mipmap.ic_launcher))
+                        coverBitmap = getDrawable(R.mipmap.ic_launcher)?.let { image.drawable2Bitmap(it) }
                     }
 
                 }, CallerThreadExecutor.getInstance())
@@ -155,12 +154,12 @@ class SingleActivity : AppCompatActivity() {
                                     return
                                 }
                                 this@SingleActivity.title = video_info["vid"]
-                                Snackbar.make(coordinatorLayout_single, video_info["title"].toString(), Snackbar.LENGTH_LONG).setAction(R.string.text_copy, {
+                                Snackbar.make(coordinatorLayout_single, video_info["title"].toString(), Snackbar.LENGTH_LONG).setAction(R.string.text_copy) {
                                     if (video_info["title"]!!.isNotEmpty()) {
-                                        cm.primaryClip = ClipData.newPlainText("Hi", video_info["title"])
+                                        cm.setPrimaryClip(ClipData.newPlainText("Hi", video_info["title"]))
                                         Snackbar.make(coordinatorLayout_single, "OK", Snackbar.LENGTH_SHORT).show()
                                     }
-                                }).show()
+                                }.show()
                                 val height = imageInfo.height
                                 val width = imageInfo.width
                                 val layoutParams = iv.layoutParams
@@ -184,14 +183,14 @@ class SingleActivity : AppCompatActivity() {
                             }
                         })
                         .build()
-                ll.onClick {
+                ll.setOnClickListener {
                     if (loadFailed) {
                         toast(R.string.error_loadImgFail)
                         finish()
                     } else {
                         Logger.d(video_info["cover"])
                         val countries = listOf("浏览器打开视频网页", "浏览器打开图片", "下载图片", "分享图片地址", "复制图片地址")
-                        selector(video_info["vid"], countries, { _, i ->
+                        selector(video_info["vid"], countries) { _, i ->
                             when (i) {
                                 0 -> browse(video_info["web"].toString())//浏览器打开网页
                                 1 -> browse(video_info["cover"].toString())//浏览器打开图片
@@ -204,9 +203,9 @@ class SingleActivity : AppCompatActivity() {
                                     if (ad.saveImage(fileName, coverBitmap)) {
                                         ad.updateGallery(this@SingleActivity, savePath)
                                         showText += "\nOK"
-                                        Snackbar.make(coordinatorLayout_single, "OK ($savePath$fileName)", Snackbar.LENGTH_SHORT).setAction(R.string.text_open, {
+                                        Snackbar.make(coordinatorLayout_single, "OK ($savePath$fileName)", Snackbar.LENGTH_SHORT).setAction(R.string.text_open) {
                                             ad.openJpgInOtherApp(this@SingleActivity, savePath + fileName)
-                                        })
+                                        }
                                                 .show()
                                     } else {
                                         showText += "\nNo"
@@ -218,14 +217,14 @@ class SingleActivity : AppCompatActivity() {
                                 4 -> {
                                     //复制图片地址
                                     if (video_info["cover"]!!.isNotEmpty()) {
-                                        cm.primaryClip = ClipData.newPlainText("Hi", video_info["cover"])
+                                        cm.setPrimaryClip(ClipData.newPlainText("Hi", video_info["cover"]))
                                         Snackbar.make(coordinatorLayout_single, "OK", Snackbar.LENGTH_SHORT).show()
                                     }
                                 }
 
                             }
 
-                        })
+                        }
                     }
 
                 }

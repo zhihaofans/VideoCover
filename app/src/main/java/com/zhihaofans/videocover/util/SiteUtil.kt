@@ -2,6 +2,7 @@ package com.zhihaofans.videocover.util
 
 import com.google.gson.Gson
 import com.orhanobut.logger.Logger
+import com.zhihaofans.videocover.data.BilibiliResultData
 import com.zhihaofans.videocover.gson.BiliBiliGalmoeGson
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,47 +18,39 @@ class SiteUtil {
     private val str = KotlinUtil.StrUtil()
     fun get(siteIndex: Int, vid: String): MutableMap<String, String> {
         return when (siteIndex) {
-            0 -> bilibili(vid)
             1 -> youtube(vid)
             else -> mutableMapOf()
         }
     }
 
-    fun bilibili(vid: String): MutableMap<String, String> {
-        val reData = mutableMapOf("title" to "", "cover" to "", "author" to "", "web" to "https://www.bilibili.com/video/$vid")
-        var videoCover = ""
-        var videoTitle = ""
-        var videoAuthor = ""
-        var html = ""
+    fun bilibili(vid: String): BilibiliResultData? {
         val client = OkHttpClient()
-        var su = false
+        val su: Boolean
         try {
             val request = Request.Builder()
                     .url("https://www.bilibili.com/video/$vid/")
                     .build()
-            val response = client.newCall(request).execute()
-            html = response.body()!!.string()
+            val body = client.newCall(request).execute().body
+            val html = body?.string()
             Logger.d(html)
             su = true
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            if (!su || html.isEmpty()) {
-                return reData
+            if (!su || !html.isNullOrEmpty()) {
+                return BilibiliResultData("", "", "", "https://www.bilibili.com/video/$vid")
             }
             val ju = JsoupUtil(Jsoup.parse(html))
-            videoAuthor = ju.safeAttr("head > meta[name=\"author\"]", "content")
-            videoCover = ju.safeAttr("head > meta[itemprop=\"image\"]", "content")
-            videoTitle = ju.safeAttr("head > meta[property=\"og:title\"]", "content")
+            val videoAuthor = ju.safeAttr("head > meta[name=\"author\"]", "content")
+            var videoCover = ju.safeAttr("head > meta[itemprop=\"image\"]", "content")
+            var videoTitle = ju.safeAttr("head > meta[property=\"og:title\"]", "content")
             if (videoTitle.endsWith("_哔哩哔哩 (゜-゜)つロ 干杯~-bilibili")) videoTitle = videoTitle.replace("_哔哩哔哩 (゜-゜)つロ 干杯~-bilibili", "")
             if (videoCover.isEmpty()) videoCover = ju.safeAttr("head > meta[property=\"og:image\"]", "content")
             if (videoCover.isEmpty()) videoCover = bilibiliVideo3rd(vid)
             if (videoCover.isNotEmpty()) videoCover = str.urlAutoHttps(videoCover)
-            reData["title"] = videoTitle
-            reData["author"] = videoAuthor
-            reData["cover"] = videoCover
+            val reData = BilibiliResultData(videoTitle, videoCover, videoAuthor, "https://www.bilibili.com/video/$vid")
             Logger.d(reData)
             return reData
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
         }
     }
 
@@ -66,16 +59,16 @@ class SiteUtil {
         val g = Gson()
         return try {
             val response = OkHttpClient().newCall(Request.Builder().get().url("https://www.galmoe.com/t.php?aid=$vid").build()).execute()
-            Logger.d("code:${response.code()}")
+            Logger.d("code:${response.code}")
             if (response.isSuccessful) {
-                val body = response.body()
+                val body = response.body
                 Logger.d(body)
                 val rejson: String? = body?.string()
                 Logger.d(rejson)
                 val biliBiliGalmoeGson = g.fromJson(rejson, BiliBiliGalmoeGson::class.java)
                 if (biliBiliGalmoeGson.result == 1) imgUrl = biliBiliGalmoeGson.url
             } else {
-                Logger.e("code:${response.code()}")
+                Logger.e("code:${response.code}")
             }
             imgUrl
         } catch (e: IOException) {
@@ -114,7 +107,7 @@ class SiteUtil {
                     .url("https://www.youtube.com/watch?v=$vid")
                     .build()
             val response = client.newCall(request).execute()
-            html = response.body()!!.string()
+            html = response.body!!.string()
             su = true
         } catch (e: Exception) {
             e.printStackTrace()

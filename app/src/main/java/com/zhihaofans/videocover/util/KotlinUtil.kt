@@ -50,7 +50,8 @@ class KotlinUtil {
             return a
         }
 
-        fun saveImage(picName: String, picdata: Bitmap): Boolean {
+        fun saveImage(picName: String, picdata: Bitmap?): Boolean {
+            if (picdata == null) return false
             val BaseDir = getStorage() + Environment.DIRECTORY_PICTURES + "/videocover/"
             val f = File(BaseDir, picName)
             Logger.d("保存图片\n$BaseDir$picName")

@@ -3,9 +3,9 @@ package com.zhihaofans.videocover.view
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Bundle
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import com.facebook.drawee.backends.pipeline.Fresco
+import com.google.android.material.snackbar.Snackbar
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.tbruyelle.rxpermissions2.RxPermissions
@@ -16,7 +16,7 @@ import com.zhihaofans.videocover.util.KotlinUtil
 import com.zhihaofans.videocover.util.SiteUtil
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.*
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import kotlin.system.exitProcess
 
 
 class MainActivity : AppCompatActivity() {
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         siteList = mutableListOf(
                 mutableMapOf(
                         "name" to mutableListOf("bilibili"),
-                        "quality" to mutableListOf<String>(getString(R.string.text_quality_default)),
+                        "quality" to mutableListOf(getString(R.string.text_quality_default)),
                         "defauit_vid" to mutableListOf(getString(R.string.setting_defaultBilibiliVid))
                 ),
                 mutableMapOf(
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
         button_site.text = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
         button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
         b_start.isClickable = false
-        b_start.onClick {
+        b_start.setOnClickListener {
             if (!getSu) {
                 alert {
                     title = getString(R.string.error)
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                 start()
             }
         }
-        b_sAa.onClick {
+        b_sAa.setOnClickListener {
             if (!getSu) {
                 alert {
                     title = getString(R.string.error)
@@ -106,73 +106,72 @@ class MainActivity : AppCompatActivity() {
                         }.show()
                     }
                 }
-        button_quality.onClick {
-            selector("", siteList[nowSiteIndex]["quality"]!!, { dialogInterface, i ->
+        button_quality.setOnClickListener {
+            selector("", siteList[nowSiteIndex]["quality"]!!) { _, i ->
                 nowSiteQualityIndex = i
                 button_site.text = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
                 button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
-            })
+            }
         }
-        button_site.onClick {
+        button_site.setOnClickListener {
             val tempSizeList = siteList.map {
                 it["name"]!![0]
             }
-            selector("", tempSizeList, { dialogInterface, i ->
+            selector("", tempSizeList) { _, i ->
                 nowSiteIndex = i
                 nowSiteQualityIndex = 0
                 nowSiteId = (siteList[nowSiteIndex]["name"] as MutableList<String>)[0]
                 button_site.text = nowSiteId
                 button_quality.text = (siteList[nowSiteIndex]["quality"] as MutableList<String>)[nowSiteQualityIndex]
                 editText_input.setText((siteList[nowSiteIndex]["defauit_vid"] as MutableList<String>)[0])
-            })
+            }
         }
     }
 
     private fun exit() {
-        System.exit(0)
+        exitProcess(0)
     }
 
     private fun start() {
         Snackbar.make(coordinatorLayout_main, R.string.text_getPerSu, Snackbar.LENGTH_SHORT).show()
-        val a = indeterminateProgressDialog("Please wait a minute.", "Getting…")
-        a.hide()
-        Logger.d("start()1")
-        b_sAa.onClick {
+        val progressdialogA = indeterminateProgressDialog("Please wait a minute.", "Getting…")
+        progressdialogA.hide()
+        Logger.d("start(1)")
+        b_sAa.setOnClickListener {
             startActivity<AboutActivity>()
         }
-        Logger.d("start()2")
-        b_start.onClick {
+        Logger.d("start(2)")
+        b_start.setOnClickListener {
             val spNo = nowSiteIndex
             val vId = editText_input.text.toString()
             Logger.d(spNo)
             val site = SiteUtil()
             when (spNo) {
                 0 -> {
-                    a.show()
+                    progressdialogA.show()
                     if (vId.isNotEmpty()) {
-                        var vTitle: String
-                        var vCover: String
-                        var vWeb: String
-                        var vAuthor: String
                         val b = doAsync {
-                            val reData = site.get(0, vId)
-                            vCover = reData["cover"].toString()
-                            vTitle = reData["title"].toString()
-                            vWeb = reData["web"].toString()
-                            vAuthor = reData["author"].toString()
+                            val reData = site.bilibili(vId)
                             uiThread {
-                                a.hide()
-                                if (vCover.isNotEmpty()) {
-                                    a.hide()
-                                    startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor, "site" to nowSiteId)
+                                progressdialogA.hide()
+                                if (reData == null) {
+                                    Snackbar.make(coordinatorLayout_main, "数据空白", Snackbar.LENGTH_SHORT).show()
                                 } else {
-                                    Snackbar.make(coordinatorLayout_main, getString(R.string.error_noSupportPage), Snackbar.LENGTH_SHORT).show()
+                                    val vCover = reData.cover
+                                    val vTitle = reData.title
+                                    val vWeb = reData.web
+                                    val vAuthor = reData.author
+                                    if (vCover.isNotEmpty()) {
+                                        startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor, "site" to nowSiteId)
+                                    } else {
+                                        Snackbar.make(coordinatorLayout_main, getString(R.string.error_noSupportPage), Snackbar.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
                         }
-                        a.setOnCancelListener {
+                        progressdialogA.setOnCancelListener {
                             b.cancel(true)
-                            a.hide()
+                            progressdialogA.hide()
                             if (b.isCancelled) {
                                 Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled), Snackbar.LENGTH_SHORT).show()
                             } else {
@@ -181,7 +180,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     } else {
-                        a.hide()
+                        progressdialogA.hide()
                         alert {
                             title = getString(R.string.error_noInput)
                             setFinishOnTouchOutside(false)
@@ -193,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 1 -> {
                     //TODO("YouTube")
-                    a.show()
+                    progressdialogA.show()
                     if (vId.isNotEmpty()) {
                         var vTitle: String
                         var vCover: String
@@ -206,18 +205,18 @@ class MainActivity : AppCompatActivity() {
                             vWeb = reData["web"].toString()
                             vAuthor = reData["author"].toString()
                             uiThread {
-                                a.hide()
+                                progressdialogA.hide()
                                 if (vCover.isNotEmpty()) {
-                                    a.hide()
+                                    progressdialogA.hide()
                                     startActivity<SingleActivity>("cover" to vCover, "vid" to vId, "title" to vTitle, "web" to vWeb, "author" to vAuthor, "site" to nowSiteId)
                                 } else {
                                     Snackbar.make(coordinatorLayout_main, getString(R.string.error_noResult), Snackbar.LENGTH_SHORT).show()
                                 }
                             }
                         }
-                        a.setOnCancelListener {
+                        progressdialogA.setOnCancelListener {
                             b.cancel(true)
-                            a.hide()
+                            progressdialogA.hide()
                             if (b.isCancelled) {
                                 Snackbar.make(coordinatorLayout_main, getString(R.string.text_canceled), Snackbar.LENGTH_SHORT).show()
                             } else {
@@ -226,7 +225,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     } else {
-                        a.hide()
+                        progressdialogA.hide()
                         alert {
                             title = getString(R.string.error_noInput)
                             setFinishOnTouchOutside(false)
